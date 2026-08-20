@@ -2935,7 +2935,19 @@ document.addEventListener(
     "DOMContentLoaded",
     async () => {
 
-        await loadPostsFromCloud();
+        if (
+            new URLSearchParams(
+                window.location.search
+            ).has("reset")
+        ) {
+
+            await resetPostHistory();
+
+        } else {
+
+            await loadPostsFromCloud();
+
+        }
 
         renderPosts();
 
@@ -2972,16 +2984,12 @@ async function loadPostsFromCloud() {
                 }))
                 .sort((first, second) => Number(second.id) - Number(first.id));
 
-        if (cloudPosts.length) {
+        posts = cloudPosts;
 
-            posts = cloudPosts;
-
-            localStorage.setItem(
-                "cloudyPosts",
-                JSON.stringify(posts)
-            );
-
-        }
+        localStorage.setItem(
+            "cloudyPosts",
+            JSON.stringify(posts)
+        );
 
         cloudReady =
             true;
@@ -2995,6 +3003,54 @@ async function loadPostsFromCloud() {
 
         showToast(
             "Using this browser's saved posts for now 💭"
+        );
+
+    }
+
+}
+
+
+async function resetPostHistory() {
+
+    try {
+
+        const snapshot =
+            await getDocs(
+                collection(database, "posts")
+            );
+
+        await Promise.all(
+            snapshot.docs.map(
+                snapshotItem => deleteDoc(
+                    snapshotItem.ref
+                )
+            )
+        );
+
+        posts = [];
+
+        localStorage.removeItem(
+            "cloudyPosts"
+        );
+
+        cloudReady =
+            true;
+
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+        );
+
+    } catch(error) {
+
+        console.error(
+            "Could not reset Firebase post history:",
+            error
+        );
+
+        showToast(
+            "Firebase rules must allow deleting posts 💭"
         );
 
     }
