@@ -2968,6 +2968,13 @@ async function loadPostsFromCloud() {
 
     try {
 
+        const localPosts =
+            JSON.parse(
+                localStorage.getItem(
+                    "cloudyPosts"
+                ) || "[]"
+            );
+
         const snapshot =
             await getDocs(
                 collection(database, "posts")
@@ -2984,7 +2991,20 @@ async function loadPostsFromCloud() {
                 }))
                 .sort((first, second) => Number(second.id) - Number(first.id));
 
-        posts = cloudPosts;
+        const cloudPostIds = new Set(
+            cloudPosts.map(post => String(post.id))
+        );
+
+        posts = [
+            ...cloudPosts,
+            ...localPosts.filter(
+                post => !cloudPostIds.has(String(post.id))
+            )
+        ];
+
+        posts.sort(
+            (first, second) => Number(second.id) - Number(first.id)
+        );
 
         localStorage.setItem(
             "cloudyPosts",
@@ -3517,7 +3537,7 @@ function prepareMedia(file) {
         reader.onload = () => {
             image.onload = () => {
 
-                const maximumDimension = 1600;
+                const maximumDimension = 1200;
                 const scale = Math.min(
                     1,
                     maximumDimension / Math.max(image.width, image.height)
@@ -3534,7 +3554,7 @@ function prepareMedia(file) {
                     canvas.height
                 );
 
-                resolve(canvas.toDataURL("image/jpeg", 0.78));
+                resolve(canvas.toDataURL("image/jpeg", 0.65));
 
             };
             image.onerror = reject;
@@ -3657,9 +3677,6 @@ function createPost() {
                 showToast(
                     "That file is too large for browser storage 😭"
                 );
-
-
-                return;
 
             }
 
